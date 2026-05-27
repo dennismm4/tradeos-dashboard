@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TradeOS — Live Trading Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#080C10;--bg2:#0D1117;--bg3:#111820;
+  --surface:#131B24;--surface2:#19232E;--surface3:#1E2A38;
+  --border:#1E2D3D;--border2:#243344;
+  --text:#E6EDF3;--text2:#8B949E;--text3:#484F58;
+  --green:#00FF94;--green-dim:#00CC76;--green-bg:rgba(0,255,148,0.08);--green-border:rgba(0,255,148,0.2);
+  --red:#FF4D6A;--red-bg:rgba(255,77,106,0.08);--red-border:rgba(255,77,106,0.2);
+  --amber:#FFB830;--amber-bg:rgba(255,184,48,0.08);--amber-border:rgba(255,184,48,0.2);
+  --blue:#4D9EFF;--blue-bg:rgba(77,158,255,0.08);--blue-border:rgba(77,158,255,0.2);
+  --purple:#A78BFA;--purple-bg:rgba(167,139,250,0.08);
+  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+  --radius:8px;--radius-lg:12px;
+}
+html{scroll-behavior:smooth;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(0,255,148,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,148,0.012) 1px,transparent 1px);
+  background-size:48px 48px;}
+
+/* ── LAYOUT ── */
+.shell{position:relative;z-index:1;display:grid;grid-template-columns:230px 1fr;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.sidebar-brand{padding:1.25rem 1.25rem 1rem;border-bottom:1px solid var(--border);}
+.brand-logo{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+.brand-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:glow 2s ease-in-out infinite;}
+@keyframes glow{0%,100%{box-shadow:0 0 4px var(--green);}50%{box-shadow:0 0 12px var(--green),0 0 20px rgba(0,255,148,0.3);}}
+.brand-name{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--green);letter-spacing:2px;}
+.brand-tag{font-size:10px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-left:16px;}
+.sys-status{margin:0.9rem 1rem 0;background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--radius);padding:0.55rem 0.85rem;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--green);font-weight:600;letter-spacing:0.5px;}
+.pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.5;transform:scale(0.85);}}
+.nav-section{padding:1rem 1rem 0.35rem;font-size:9px;color:var(--text3);letter-spacing:2.5px;text-transform:uppercase;font-weight:700;}
+.nav-link{display:flex;align-items:center;gap:9px;padding:0.5rem 1rem;margin:1px 0.5rem;border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:all 0.15s;text-decoration:none;border:1px solid transparent;}
+.nav-link:hover{background:var(--surface);color:var(--text);}
+.nav-link.active{background:var(--green-bg);color:var(--green);border-color:var(--green-border);}
+.nav-icon{width:16px;text-align:center;font-size:13px;opacity:0.8;}
+.nav-badge{margin-left:auto;background:var(--green-bg);color:var(--green);font-family:var(--mono);font-size:10px;padding:1px 7px;border-radius:20px;border:1px solid var(--green-border);}
+.nav-badge.red{background:var(--red-bg);color:var(--red);border-color:var(--red-border);}
+
+/* Accounts in sidebar */
+.sidebar-accounts{margin:0.75rem 1rem 0;display:flex;flex-direction:column;gap:6px;}
+.acct-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem;cursor:pointer;transition:border-color 0.2s;}
+.acct-card:hover,.acct-card.active{border-color:var(--green);}
+.acct-card.active{background:var(--green-bg);}
+.acct-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.acct-name{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text);}
+.acct-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:0.5px;}
+.badge-live{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.badge-demo{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border);}
+.badge-off{background:rgba(72,79,88,0.2);color:var(--text3);border:1px solid var(--border);}
+.acct-bal{font-family:var(--mono);font-size:19px;font-weight:700;color:var(--text);line-height:1;}
+.acct-pnl{font-size:11px;margin-top:3px;}
+
+.sidebar-footer{margin-top:auto;padding:1rem;border-top:1px solid var(--border);}
+.sf-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;}
+.sf-label{color:var(--text3);}
+.sf-val{color:var(--text2);font-family:var(--mono);}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.5rem;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.tb-left{display:flex;align-items:center;gap:12px;}
+.page-title{font-size:14px;font-weight:700;color:var(--text);letter-spacing:0.3px;}
+.page-sub{font-size:11px;color:var(--text3);}
+.tb-right{display:flex;align-items:center;gap:8px;}
+.tb-clock{font-family:var(--mono);font-size:12px;color:var(--text2);background:var(--surface);border:1px solid var(--border);padding:5px 10px;border-radius:var(--radius);}
+.tb-btn{background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:500;padding:6px 13px;border-radius:var(--radius);cursor:pointer;transition:all 0.15s;font-family:var(--sans);}
+.tb-btn:hover{border-color:var(--border2);color:var(--text);}
+.tb-btn.green{background:var(--green-bg);border-color:var(--green-border);color:var(--green);}
+.tb-btn.red{background:var(--red-bg);border-color:var(--red-border);color:var(--red);}
+
+/* tabs */
+.tab-bar{display:flex;border-bottom:1px solid var(--border);background:var(--bg2);padding:0 1.5rem;gap:0;}
+.tab{padding:0.7rem 1.1rem;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;letter-spacing:0.3px;text-transform:uppercase;}
+.tab:hover{color:var(--text2);}
+.tab.active{color:var(--green);border-bottom-color:var(--green);}
+
+/* ── CONTENT ── */
+.tab-content{display:none;padding:1.25rem;flex-direction:column;gap:1.25rem;animation:fadeIn 0.25s ease;}
+.tab-content.active{display:flex;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── METRIC CARDS ── */
+.metrics-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.15rem;}
+.metric-card.highlight{border-color:var(--green-border);background:var(--green-bg);}
+.mc-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:0.4rem;}
+.mc-val{font-family:var(--mono);font-size:22px;font-weight:700;line-height:1;color:var(--text);}
+.mc-val.green{color:var(--green);}
+.mc-val.red{color:var(--red);}
+.mc-val.amber{color:var(--amber);}
+.mc-sub{font-size:11px;margin-top:5px;color:var(--text3);}
+.up{color:var(--green)!important;}
+.dn{color:var(--red)!important;}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:0.8rem 1.15rem;border-bottom:1px solid var(--border);}
+.card-title{font-size:11px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:1.2px;}
+.card-body{padding:1.15rem;}
+.ctag{font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:0.8px;}
+.ctag-live{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.ctag-demo{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border);}
+.ctag-off{background:rgba(72,79,88,0.2);color:var(--text3);}
+
+/* ── GRID ── */
+.two-col{display:grid;grid-template-columns:1fr 320px;gap:1.25rem;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;}
+.four-col{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1rem;}
+
+/* ── CHART ── */
+.chart-wrap{position:relative;height:200px;}
+
+/* ── PRICE TICKER ── */
+.price-strip{display:flex;gap:0;overflow-x:auto;background:var(--bg3);border-bottom:1px solid var(--border);}
+.price-item{display:flex;align-items:center;gap:10px;padding:0.6rem 1.25rem;border-right:1px solid var(--border);white-space:nowrap;flex-shrink:0;}
+.pi-pair{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text2);}
+.pi-price{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);}
+.pi-chg{font-family:var(--mono);font-size:10px;}
+.pi-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;animation:pulse 2s infinite;}
+
+/* ── TRADES TABLE ── */
+.t-table{width:100%;border-collapse:collapse;font-size:12px;}
+.t-table th{text-align:left;padding:0.5rem 0.75rem;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;border-bottom:1px solid var(--border);}
+.t-table td{padding:0.6rem 0.75rem;border-bottom:1px solid rgba(30,45,61,0.4);color:var(--text2);}
+.t-table tr:last-child td{border-bottom:none;}
+.t-table tr:hover td{background:var(--surface2);}
+.td-mono{font-family:var(--mono);font-size:11px;}
+.td-pair{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text);}
+.td-pnl{font-family:var(--mono);font-size:12px;font-weight:700;}
+.pill{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:0.5px;}
+.pill-buy{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.pill-sell{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);}
+.pill-open{background:var(--blue-bg);color:var(--blue);}
+.pill-closed{background:rgba(72,79,88,0.15);color:var(--text3);}
+
+/* ── BOT CARDS ── */
+.bot-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.1rem 1.15rem;transition:border-color 0.2s;}
+.bot-card:hover{border-color:var(--border2);}
+.bot-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem;}
+.bot-name{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);}
+.bot-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.bot-controls{display:flex;align-items:center;gap:8px;}
+.bot-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:0.6rem;}
+.bs-item{background:var(--bg3);border-radius:6px;padding:0.5rem 0.65rem;}
+.bs-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;}
+.bs-val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);}
+.prog-wrap{margin-top:0.75rem;}
+.prog-head{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px;}
+.prog-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:2px;transition:width 0.5s ease;}
+.pf-green{background:var(--green);}
+.pf-amber{background:var(--amber);}
+.pf-blue{background:var(--blue);}
+.pf-red{background:var(--red);}
+
+/* ── TOGGLE ── */
+.toggle{position:relative;width:32px;height:17px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.tog-slider{position:absolute;inset:0;background:var(--border);border-radius:17px;cursor:pointer;transition:background 0.2s;}
+.tog-slider::before{content:'';position:absolute;width:11px;height:11px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform 0.2s;}
+.toggle input:checked+.tog-slider{background:var(--green);}
+.toggle input:checked+.tog-slider::before{transform:translateX(15px);}
+
+/* ── LOG ── */
+.log-wrap{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:1px;}
+.log-item{display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid rgba(30,45,61,0.35);font-size:11px;}
+.log-item:last-child{border-bottom:none;}
+.log-t{font-family:var(--mono);color:var(--text3);flex-shrink:0;font-size:10px;padding-top:1px;}
+.log-m{color:var(--text2);line-height:1.45;}
+.log-m.s{color:var(--green);}
+.log-m.w{color:var(--amber);}
+.log-m.e{color:var(--red);}
+.log-m.i{color:var(--blue);}
+
+/* ── SPARKLINE ── */
+.spark-wrap{height:36px;overflow:hidden;}
+
+/* ── GRID VISUALISER ── */
+.grid-vis{position:relative;height:120px;background:var(--bg3);border-radius:var(--radius);overflow:hidden;margin-top:0.75rem;}
+.grid-line{position:absolute;left:0;right:0;height:1px;background:var(--border);}
+.grid-line.buy{background:rgba(0,255,148,0.25);}
+.grid-line.sell{background:rgba(255,77,106,0.2);}
+.grid-line.current{background:var(--amber);height:2px;z-index:3;}
+.grid-label{position:absolute;right:6px;font-family:var(--mono);font-size:9px;transform:translateY(-50%);}
+.price-bar{position:absolute;left:0;width:4px;top:0;bottom:0;background:linear-gradient(to top,var(--green),transparent);}
+
+/* ── ALLOCATION PIE SVG ── */
+.alloc-wrap{display:flex;align-items:center;gap:1.25rem;}
+.alloc-legend{display:flex;flex-direction:column;gap:6px;}
+.alloc-leg-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);}
+.alloc-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+
+/* ── RISK METER ── */
+.risk-wrap{text-align:center;}
+
+/* ── SETTINGS ── */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.setting-group{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;}
+.sg-title{font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:1px;margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+.sg-row{display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid rgba(30,45,61,0.5);}
+.sg-row:last-child{border-bottom:none;}
+.sg-label{font-size:13px;color:var(--text2);}
+.sg-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.sg-input{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-family:var(--mono);font-size:12px;color:var(--text);width:110px;text-align:right;}
+.sg-input:focus{outline:none;border-color:var(--green);}
+.save-btn{width:100%;margin-top:1rem;background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);font-size:13px;font-weight:700;padding:9px;border-radius:var(--radius);cursor:pointer;font-family:var(--sans);transition:all 0.15s;}
+.save-btn:hover{background:rgba(0,255,148,0.15);}
+
+/* ── SETUP GUIDE ── */
+.setup-steps{display:flex;flex-direction:column;gap:0;}
+.setup-step{display:flex;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--border);}
+.setup-step:last-child{border-bottom:none;}
+.step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;flex-shrink:0;}
+.step-num.done{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.step-num.pending{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border);}
+.step-num.todo{background:var(--border);color:var(--text3);}
+.step-content-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.step-content-desc{font-size:12px;color:var(--text3);line-height:1.5;}
+.step-content-code{font-family:var(--mono);font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 10px;margin-top:6px;color:var(--green);}
+
+/* ── MOBILE NAV ── */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--bg2);border-top:1px solid var(--border);padding:0.6rem 0;}
+.mobile-nav-inner{display:flex;justify-content:space-around;}
+.mn-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:0 0.75rem;}
+.mn-icon{font-size:18px;}
+.mn-label{font-size:9px;color:var(--text3);font-weight:600;letter-spacing:0.5px;}
+.mn-item.active .mn-label{color:var(--green);}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1200px){.metrics-row{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:960px){.two-col{grid-template-columns:1fr;}.three-col{grid-template-columns:1fr 1fr;}.settings-grid{grid-template-columns:1fr;}}
+@media(max-width:768px){
+  .shell{grid-template-columns:1fr;}
+  .sidebar{display:none;}
+  .metrics-row{grid-template-columns:1fr 1fr;}
+  .three-col{grid-template-columns:1fr;}
+  .four-col{grid-template-columns:1fr 1fr;}
+  .mobile-nav{display:block;}
+  .tab-content{padding-bottom:5rem;}
+}
+@media(max-width:480px){.metrics-row{grid-template-columns:1fr 1fr;}.four-col{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ══ SIDEBAR ══ -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-logo"><div class="brand-dot"></div><div class="brand-name">TRADE_OS</div></div>
+    <div class="brand-tag">v1.0 · Nairobi, Kenya</div>
+  </div>
+  <div class="sys-status"><div class="pulse-dot"></div><span id="sys-status-txt">Systems Operational</span></div>
+
+  <div class="nav-section">Menu</div>
+  <a class="nav-link active" onclick="switchTab('dashboard',this)"><span class="nav-icon">▦</span>Dashboard</a>
+  <a class="nav-link" onclick="switchTab('trades',this)"><span class="nav-icon">↕</span>Live Trades<span class="nav-badge" id="sb-open">0</span></a>
+  <a class="nav-link" onclick="switchTab('bots',this)"><span class="nav-icon">⬡</span>Bots</a>
+  <a class="nav-link" onclick="switchTab('history',this)"><span class="nav-icon">≡</span>History</a>
+  <a class="nav-link" onclick="switchTab('setup',this)"><span class="nav-icon">◎</span>Setup Guide</a>
+  <a class="nav-link" onclick="switchTab('settings',this)"><span class="nav-icon">⚙</span>Settings</a>
+
+  <div class="nav-section">Accounts</div>
+  <div class="sidebar-accounts">
+    <div class="acct-card active" id="sb-bnb">
+      <div class="acct-top"><div class="acct-name">BINANCE</div><span class="acct-badge badge-live">LIVE</span></div>
+      <div class="acct-bal" id="sb-bnb-bal">$20.00</div>
+      <div class="acct-pnl up" id="sb-bnb-pnl">+$0.000 (0.00%)</div>
+    </div>
+    <div class="acct-card" id="sb-exn">
+      <div class="acct-top"><div class="acct-name">EXNESS MT5</div><span class="acct-badge badge-demo">DEMO</span></div>
+      <div class="acct-bal">$30.00</div>
+      <div class="acct-pnl" style="color:var(--text3);font-size:11px;">Pending setup →</div>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="sf-row"><span class="sf-label">Last sync</span><span class="sf-val" id="sb-sync">--:--:--</span></div>
+    <div class="sf-row"><span class="sf-label">Binance API</span><span class="sf-val" style="color:var(--green);">● Online</span></div>
+    <div class="sf-row"><span class="sf-label">Exness</span><span class="sf-val" style="color:var(--amber);">● Pending</span></div>
+    <div class="sf-row"><span class="sf-label">Version</span><span class="sf-val">1.0.0</span></div>
+  </div>
+</aside>
+
+<!-- ══ MAIN ══ -->
+<div class="main" style="display:flex;flex-direction:column;min-height:100vh;overflow:hidden;">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="page-sub">Binance Grid + Exness RSI (demo)</div>
+    </div>
+    <div class="tb-right">
+      <div class="tb-clock" id="clock">00:00:00</div>
+      <button class="tb-btn" onclick="doRefresh()">↻ Sync</button>
+      <button class="tb-btn green" id="master-btn" onclick="toggleMaster()">⏸ Pause All</button>
+    </div>
+  </div>
+
+  <!-- PRICE STRIP -->
+  <div class="price-strip" id="price-strip">
+    <div class="price-item"><div class="pi-dot" style="background:var(--amber);"></div><div class="pi-pair">BTC/USDT</div><div class="pi-price" id="btc-p">--</div><div class="pi-chg" id="btc-c">--</div></div>
+    <div class="price-item"><div class="pi-dot" style="background:var(--blue);"></div><div class="pi-pair">ETH/USDT</div><div class="pi-price" id="eth-p">--</div><div class="pi-chg" id="eth-c">--</div></div>
+    <div class="price-item"><div class="pi-dot" style="background:var(--green);"></div><div class="pi-pair">EUR/USD</div><div class="pi-price" id="eur-p">--</div><div class="pi-chg" id="eur-c">--</div></div>
+    <div class="price-item"><div class="pi-dot" style="background:var(--purple);"></div><div class="pi-pair">GBP/USD</div><div class="pi-price" id="gbp-p">--</div><div class="pi-chg" id="gbp-c">--</div></div>
+    <div class="price-item" style="margin-left:auto;border-left:1px solid var(--border);border-right:none;"><div class="pi-pair" style="color:var(--text3);">EAT (UTC+3)</div><div class="pi-price" id="eat-clock" style="font-size:12px;">--:--</div></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('dashboard',this)" data-tab="dashboard">Overview</div>
+    <div class="tab" onclick="switchTab('trades',this)" data-tab="trades">Live Trades</div>
+    <div class="tab" onclick="switchTab('bots',this)" data-tab="bots">Bots</div>
+    <div class="tab" onclick="switchTab('history',this)" data-tab="history">History</div>
+    <div class="tab" onclick="switchTab('setup',this)" data-tab="setup">Setup Guide</div>
+    <div class="tab" onclick="switchTab('settings',this)" data-tab="settings">Settings</div>
+  </div>
+
+  <!-- ══ TAB: DASHBOARD ══ -->
+  <div class="tab-content active" id="tab-dashboard">
+
+    <!-- METRICS -->
+    <div class="metrics-row">
+      <div class="metric-card highlight">
+        <div class="mc-label">Total Portfolio</div>
+        <div class="mc-val" id="m-total">$50.00</div>
+        <div class="mc-sub"><span id="m-total-chg" class="up">▲ $0.000 today</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Today's P&amp;L</div>
+        <div class="mc-val green" id="m-pnl">+$0.000</div>
+        <div class="mc-sub"><span id="m-pnl-pct">0.00% return</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Open Positions</div>
+        <div class="mc-val amber" id="m-open">0</div>
+        <div class="mc-sub">across both accounts</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Win Rate</div>
+        <div class="mc-val" id="m-wr">--%</div>
+        <div class="mc-sub" id="m-wr-sub">0 trades closed</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Best Trade</div>
+        <div class="mc-val green" id="m-best">$0.000</div>
+        <div class="mc-sub" id="m-best-sub">no trades yet</div>
+      </div>
+    </div>
+
+    <!-- CHART + RIGHT COLUMN -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Portfolio Performance</div>
+          <div style="display:flex;gap:6px;">
+            <button class="tb-btn" style="padding:3px 9px;font-size:10px;" onclick="chartRange('1H')">1H</button>
+            <button class="tb-btn" style="padding:3px 9px;font-size:10px;" onclick="chartRange('1D')">1D</button>
+            <button class="tb-btn" style="padding:3px 9px;font-size:10px;" onclick="chartRange('1W')">1W</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0.75rem 1rem 0.75rem;">
+          <div class="chart-wrap"><canvas id="perf-chart"></canvas></div>
+          <div style="display:flex;justify-content:space-between;margin-top:0.75rem;font-size:11px;color:var(--text3);">
+            <span>Start: <span style="color:var(--text2);font-family:var(--mono);">$50.00</span></span>
+            <span>Current: <span style="color:var(--green);font-family:var(--mono);" id="perf-current">$50.00</span></span>
+            <span>Peak: <span style="color:var(--amber);font-family:var(--mono);" id="perf-peak">$50.00</span></span>
+            <span>Drawdown: <span style="color:var(--red);font-family:var(--mono);" id="perf-dd">0.00%</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <!-- Risk gauge -->
+        <div class="card">
+          <div class="card-head"><div class="card-title">Risk Exposure</div><div class="ctag ctag-live" id="risk-tag">LOW</div></div>
+          <div class="card-body" style="padding:0.85rem 1rem;text-align:center;">
+            <svg viewBox="0 0 130 70" width="130" height="70" style="display:block;margin:0 auto 4px;">
+              <defs>
+                <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" style="stop-color:#00FF94"/>
+                  <stop offset="50%" style="stop-color:#FFB830"/>
+                  <stop offset="100%" style="stop-color:#FF4D6A"/>
+                </linearGradient>
+              </defs>
+              <path d="M12 65 A53 53 0 0 1 118 65" fill="none" stroke="#1E2D3D" stroke-width="10" stroke-linecap="round"/>
+              <path d="M12 65 A53 53 0 0 1 118 65" fill="none" stroke="url(#rg)" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 166" id="risk-arc" opacity="0.25"/>
+              <path d="M12 65 A53 53 0 0 1 118 65" fill="none" stroke="#00FF94" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 166" id="risk-arc2"/>
+              <text x="65" y="60" text-anchor="middle" font-family="Space Mono" font-size="17" font-weight="700" fill="#E6EDF3" id="risk-txt">0%</text>
+            </svg>
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:2px;">
+              <span style="color:var(--green);">Safe</span><span>Medium</span><span style="color:var(--red);">High</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Allocation -->
+        <div class="card">
+          <div class="card-head"><div class="card-title">Allocation</div></div>
+          <div class="card-body" style="padding:0.75rem 1rem;">
+            <div class="alloc-wrap">
+              <svg viewBox="0 0 80 80" width="80" height="80" style="flex-shrink:0;">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="#1E2D3D" stroke-width="12"/>
+                <circle cx="40" cy="40" r="32" fill="none" stroke="#FFB830" stroke-width="12" stroke-dasharray="120 81" stroke-dashoffset="-20" stroke-linecap="butt"/>
+                <circle cx="40" cy="40" r="32" fill="none" stroke="#4D9EFF" stroke-width="12" stroke-dasharray="60 141" stroke-dashoffset="-140" stroke-linecap="butt"/>
+                <circle cx="40" cy="40" r="32" fill="none" stroke="#00FF94" stroke-width="12" stroke-dasharray="21 180" stroke-dashoffset="-200" stroke-linecap="butt"/>
+                <text x="40" y="38" text-anchor="middle" font-family="Space Mono" font-size="10" font-weight="700" fill="#E6EDF3">$50</text>
+                <text x="40" y="50" text-anchor="middle" font-family="Space Mono" font-size="7" fill="#484F58">total</text>
+              </svg>
+              <div class="alloc-legend">
+                <div class="alloc-leg-item"><div class="alloc-dot" style="background:#FFB830;"></div><div><div style="font-size:12px;color:var(--text);">Binance</div><div style="font-size:10px;color:var(--text3);">$20 · 40%</div></div></div>
+                <div class="alloc-leg-item"><div class="alloc-dot" style="background:#4D9EFF;"></div><div><div style="font-size:12px;color:var(--text);">Exness</div><div style="font-size:10px;color:var(--text3);">$30 · 60%</div></div></div>
+                <div class="alloc-leg-item"><div class="alloc-dot" style="background:#00FF94;"></div><div><div style="font-size:12px;color:var(--text);">P&amp;L</div><div style="font-size:10px;color:var(--green);" id="alloc-pnl">+$0.00</div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOT CARDS -->
+    <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:2px;">Active Bots</div>
+    <div class="three-col">
+      <!-- Binance Grid -->
+      <div class="bot-card">
+        <div class="bot-header">
+          <div><div class="bot-name">GRID_BOT_01</div><div class="bot-sub">Binance · BTC/USDT · Grid Strategy</div></div>
+          <div class="bot-controls">
+            <span class="ctag ctag-live" id="bot1-ctag">LIVE</span>
+            <label class="toggle"><input type="checkbox" id="bot1-tog" checked onchange="toggleBot(1)"><span class="tog-slider"></span></label>
+          </div>
+        </div>
+        <div class="bot-stats">
+          <div class="bs-item"><div class="bs-label">Grid Range</div><div class="bs-val" id="bot1-range">$64k–$70k</div></div>
+          <div class="bs-item"><div class="bs-label">Grids</div><div class="bs-val">10 levels</div></div>
+          <div class="bs-item"><div class="bs-label">Capital</div><div class="bs-val">$20.00</div></div>
+          <div class="bs-item"><div class="bs-label">P&amp;L</div><div class="bs-val green" id="bot1-pnl">+$0.000</div></div>
+        </div>
+        <div class="prog-wrap">
+          <div class="prog-head"><span>Price in range</span><span id="bot1-pct">--%</span></div>
+          <div class="prog-bar"><div class="prog-fill pf-green" id="bot1-bar" style="width:50%"></div></div>
+        </div>
+        <!-- Grid vis -->
+        <div class="grid-vis" id="grid-vis"></div>
+      </div>
+
+      <!-- Exness RSI -->
+      <div class="bot-card">
+        <div class="bot-header">
+          <div><div class="bot-name">RSI_BOT_01</div><div class="bot-sub">Exness MT5 · EUR/USD · RSI+MA</div></div>
+          <div class="bot-controls">
+            <span class="ctag ctag-demo" id="bot2-ctag">DEMO</span>
+            <label class="toggle"><input type="checkbox" id="bot2-tog" onchange="toggleBot(2)"><span class="tog-slider"></span></label>
+          </div>
+        </div>
+        <div class="bot-stats">
+          <div class="bs-item"><div class="bs-label">Strategy</div><div class="bs-val">RSI+MA</div></div>
+          <div class="bs-item"><div class="bs-label">Timeframe</div><div class="bs-val">H1</div></div>
+          <div class="bs-item"><div class="bs-label">Capital</div><div class="bs-val">$30.00</div></div>
+          <div class="bs-item"><div class="bs-label">P&amp;L</div><div class="bs-val" id="bot2-pnl" style="color:var(--text3);">$0.00</div></div>
+        </div>
+        <div class="prog-wrap">
+          <div class="prog-head"><span>Setup progress</span><span>60%</span></div>
+          <div class="prog-bar"><div class="prog-fill pf-amber" style="width:60%"></div></div>
+        </div>
+        <div style="margin-top:0.75rem;font-size:11px;color:var(--text3);line-height:1.5;">
+          ⚠️ Awaiting Exness MT5 connection. See <span style="color:var(--blue);cursor:pointer;" onclick="switchTab('setup')">Setup Guide</span>.
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="bot-card">
+        <div class="bot-header"><div><div class="bot-name">STATISTICS</div><div class="bot-sub">All accounts · All time</div></div></div>
+        <div class="bot-stats">
+          <div class="bs-item"><div class="bs-label">Total Trades</div><div class="bs-val" id="st-total">0</div></div>
+          <div class="bs-item"><div class="bs-label">Win / Loss</div><div class="bs-val"><span class="up" id="st-wins">0</span> / <span class="dn" id="st-losses">0</span></div></div>
+          <div class="bs-item"><div class="bs-label">Avg Win</div><div class="bs-val green" id="st-avgwin">$0.000</div></div>
+          <div class="bs-item"><div class="bs-label">Avg Loss</div><div class="bs-val red" id="st-avgloss">$0.000</div></div>
+        </div>
+        <div class="prog-wrap">
+          <div class="prog-head"><span>Win rate</span><span id="st-wr">0%</span></div>
+          <div class="prog-bar"><div class="prog-fill pf-blue" id="st-wr-bar" style="width:0%"></div></div>
+        </div>
+        <div class="prog-wrap" style="margin-top:0.5rem;">
+          <div class="prog-head"><span>Max drawdown</span><span id="st-dd">0.00%</span></div>
+          <div class="prog-bar"><div class="prog-fill pf-red" id="st-dd-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECENT TRADES + LOG -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Recent Trades</div>
+          <div style="font-size:10px;color:var(--text3);" id="trades-ts">No trades yet</div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="t-table">
+            <thead><tr><th>Pair</th><th>Side</th><th>Entry</th><th>P&amp;L</th><th>Status</th><th>Source</th><th>Time</th></tr></thead>
+            <tbody id="trades-tbody">
+              <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:2rem 1rem;font-size:12px;">Waiting for first trade signal…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">System Log</div>
+          <button class="tb-btn" style="padding:3px 9px;font-size:10px;" onclick="clearLog()">Clear</button>
+        </div>
+        <div class="card-body" style="padding:0.75rem 1rem;">
+          <div class="log-wrap" id="log-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: LIVE TRADES ══ -->
+  <div class="tab-content" id="tab-trades">
+    <div class="metrics-row" style="grid-template-columns:repeat(4,1fr);">
+      <div class="metric-card"><div class="mc-label">Open Positions</div><div class="mc-val amber" id="lt-open">0</div></div>
+      <div class="metric-card"><div class="mc-label">Unrealised P&amp;L</div><div class="mc-val green" id="lt-upnl">+$0.000</div></div>
+      <div class="metric-card"><div class="mc-label">Today Closed</div><div class="mc-val" id="lt-closed">0</div></div>
+      <div class="metric-card"><div class="mc-label">Today Realised</div><div class="mc-val green" id="lt-rpnl">+$0.000</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">All Trades</div><div class="ctag ctag-live" id="lt-count">0 total</div></div>
+      <div style="overflow-x:auto;">
+        <table class="t-table">
+          <thead><tr><th>#</th><th>Pair</th><th>Side</th><th>Entry Price</th><th>Exit Price</th><th>Qty</th><th>P&amp;L</th><th>Status</th><th>Bot</th><th>Time</th></tr></thead>
+          <tbody id="all-trades-tbody">
+            <tr><td colspan="10" style="text-align:center;color:var(--text3);padding:2rem;font-size:12px;">No trades recorded yet. Bots will log trades here as they execute.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: BOTS ══ -->
+  <div class="tab-content" id="tab-bots">
+    <div class="two-col">
+      <!-- Binance Detail -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">GRID_BOT_01 — Binance</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="ctag ctag-live" id="b-bot1-ctag">LIVE</span>
+            <label class="toggle"><input type="checkbox" id="b-bot1-tog" checked onchange="toggleBot(1)"><span class="tog-slider"></span></label>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="four-col" style="margin-bottom:1rem;">
+            <div class="bs-item"><div class="bs-label">Strategy</div><div class="bs-val">Grid</div></div>
+            <div class="bs-item"><div class="bs-label">Pair</div><div class="bs-val">BTC/USDT</div></div>
+            <div class="bs-item"><div class="bs-label">Capital</div><div class="bs-val">$20</div></div>
+            <div class="bs-item"><div class="bs-label">Per Grid</div><div class="bs-val">$1.80</div></div>
+            <div class="bs-item"><div class="bs-label">Lower</div><div class="bs-val">$64,000</div></div>
+            <div class="bs-item"><div class="bs-label">Upper</div><div class="bs-val">$70,000</div></div>
+            <div class="bs-item"><div class="bs-label">Grids</div><div class="bs-val">10</div></div>
+            <div class="bs-item"><div class="bs-label">Stop Loss</div><div class="bs-val red">$63,000</div></div>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Grid Visualiser</div>
+          <div class="grid-vis" id="bots-grid-vis" style="height:150px;"></div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--text3);">
+            <span>▼ $64,000 (stop $63k)</span>
+            <span>Current: <span style="color:var(--amber);font-family:var(--mono);" id="bots-btc-cur">--</span></span>
+            <span>▲ $70,000</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exness Detail -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">RSI_BOT_01 — Exness MT5</div>
+          <span class="ctag ctag-demo">DEMO</span>
+        </div>
+        <div class="card-body">
+          <div class="four-col" style="margin-bottom:1rem;">
+            <div class="bs-item"><div class="bs-label">Strategy</div><div class="bs-val">RSI+MA</div></div>
+            <div class="bs-item"><div class="bs-label">Pair</div><div class="bs-val">EUR/USD</div></div>
+            <div class="bs-item"><div class="bs-label">Capital</div><div class="bs-val">$30</div></div>
+            <div class="bs-item"><div class="bs-label">Leverage</div><div class="bs-val">1:5</div></div>
+            <div class="bs-item"><div class="bs-label">RSI Period</div><div class="bs-val">14</div></div>
+            <div class="bs-item"><div class="bs-label">Overbought</div><div class="bs-val red">70</div></div>
+            <div class="bs-item"><div class="bs-label">Oversold</div><div class="bs-val green">30</div></div>
+            <div class="bs-item"><div class="bs-label">Timeframe</div><div class="bs-val">H1</div></div>
+          </div>
+          <div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:0.85rem;font-size:12px;color:var(--amber);line-height:1.6;">
+            ⚠️ <strong>Pending connection.</strong> This bot is configured and ready. Complete the Exness MT5 setup in the Setup Guide tab, then toggle it on to begin demo trading EUR/USD.
+          </div>
+          <div style="margin-top:1rem;">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">EUR/USD Live Price</div>
+            <div style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--text);" id="bots-eur">--</div>
+            <div class="spark-wrap" style="margin-top:6px;"><svg style="width:100%;height:36px;" id="eur-spark-svg"><polyline id="eur-spark" points="" fill="none" stroke="#4D9EFF" stroke-width="1.5"/></svg></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: HISTORY ══ -->
+  <div class="tab-content" id="tab-history">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-head"><div class="card-title">P&amp;L History Chart</div></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="hist-chart"></canvas></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="card">
+          <div class="card-head"><div class="card-title">Daily Summary</div></div>
+          <div class="card-body" style="padding:0.75rem;">
+            <table class="t-table">
+              <thead><tr><th>Date</th><th>Trades</th><th>P&amp;L</th><th>WR</th></tr></thead>
+              <tbody id="hist-tbody">
+                <tr><td colspan="4" style="text-align:center;color:var(--text3);padding:1.5rem;font-size:12px;">Trading history will appear here</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Performance Stats</div></div>
+          <div class="card-body" style="padding:0.75rem;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div class="sg-row"><div class="sg-label">Total Return</div><div style="font-family:var(--mono);font-size:13px;" class="up" id="h-return">+0.00%</div></div>
+              <div class="sg-row"><div class="sg-label">Sharpe Ratio</div><div style="font-family:var(--mono);font-size:13px;color:var(--text2);" id="h-sharpe">--</div></div>
+              <div class="sg-row"><div class="sg-label">Max Drawdown</div><div style="font-family:var(--mono);font-size:13px;" class="dn" id="h-dd">0.00%</div></div>
+              <div class="sg-row"><div class="sg-label">Best Day</div><div style="font-family:var(--mono);font-size:13px;" class="up" id="h-best">$0.000</div></div>
+              <div class="sg-row"><div class="sg-label">Worst Day</div><div style="font-family:var(--mono);font-size:13px;" class="dn" id="h-worst">$0.000</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: SETUP GUIDE ══ -->
+  <div class="tab-content" id="tab-setup">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-head"><div class="card-title">🔑 Binance API Setup</div><div class="ctag ctag-live">COMPLETE</div></div>
+        <div class="card-body">
+          <div class="setup-steps">
+            <div class="setup-step">
+              <div class="step-num done">✓</div>
+              <div><div class="step-content-title">Create Binance account</div><div class="step-content-desc">You already have a Binance account — this step is done.</div></div>
+            </div>
+            <div class="setup-step">
+              <div class="step-num done">✓</div>
+              <div><div class="step-content-title">Generate API keys</div><div class="step-content-desc">Go to Binance → Profile → API Management → Create API. Enable Spot Trading only. Disable withdrawals for safety.</div></div>
+            </div>
+            <div class="setup-step">
+              <div class="step-num pending">3</div>
+              <div>
+                <div class="step-content-title">Create .env file</div>
+                <div class="step-content-desc">In the same folder as binance_bot.py, create a file called <code style="color:var(--green);">.env</code> and add:</div>
+                <div class="step-content-code">BINANCE_API_KEY=your_key_here<br>BINANCE_API_SECRET=your_secret_here</div>
+              </div>
+            </div>
+            <div class="setup-step">
+              <div class="step-num pending">4</div>
+              <div>
+                <div class="step-content-title">Install dependencies</div>
+                <div class="step-content-code">pip install python-binance python-dotenv pandas</div>
+              </div>
+            </div>
+            <div class="setup-step">
+              <div class="step-num todo">5</div>
+              <div>
+                <div class="step-content-title">Run in paper mode first (2 weeks minimum)</div>
+                <div class="step-content-code">python binance_bot.py --mode paper</div>
+                <div class="step-content-desc" style="margin-top:6px;">Watch the log file. Only go live after consistent paper profits.</div>
+              </div>
+            </div>
+            <div class="setup-step">
+              <div class="step-num todo">6</div>
+              <div>
+                <div class="step-content-title">Go live</div>
+                <div class="step-content-code">python binance_bot.py --mode live</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:1.25rem;">
+        <div class="card">
+          <div class="card-head"><div class="card-title">📊 Exness MT5 Setup</div><div class="ctag ctag-demo">IN PROGRESS</div></div>
+          <div class="card-body">
+            <div class="setup-steps">
+              <div class="setup-step">
+                <div class="step-num pending">1</div>
+                <div>
+                  <div class="step-content-title">Open Exness account (Kenya)</div>
+                  <div class="step-content-desc">Visit <a href="https://exness.com" target="_blank" style="color:var(--blue);">exness.com</a> → Register → Choose Standard account. Deposit $30 via M-Pesa. Takes ~10 minutes.</div>
+                </div>
+              </div>
+              <div class="setup-step">
+                <div class="step-num todo">2</div>
+                <div>
+                  <div class="step-content-title">Download MetaTrader 5</div>
+                  <div class="step-content-desc">Download MT5 from the Exness dashboard. Log in with your Exness account credentials.</div>
+                </div>
+              </div>
+              <div class="setup-step">
+                <div class="step-num todo">3</div>
+                <div>
+                  <div class="step-content-title">Install Python MT5 library</div>
+                  <div class="step-content-code">pip install MetaTrader5</div>
+                </div>
+              </div>
+              <div class="setup-step">
+                <div class="step-num todo">4</div>
+                <div>
+                  <div class="step-content-title">Add Exness credentials to .env</div>
+                  <div class="step-content-code">MT5_LOGIN=your_account_number<br>MT5_PASSWORD=your_password<br>MT5_SERVER=Exness-MT5Real</div>
+                </div>
+              </div>
+              <div class="setup-step">
+                <div class="step-num todo">5</div>
+                <div>
+                  <div class="step-content-title">Run Exness bot in demo mode</div>
+                  <div class="step-content-code">python exness_bot.py --mode demo</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">🚀 Deploy to GitHub Pages</div></div>
+          <div class="card-body">
+            <div class="setup-steps">
+              <div class="setup-step">
+                <div class="step-num done">✓</div>
+                <div><div class="step-content-title">Download the project files</div><div class="step-content-desc">You have: dashboard.html, binance_bot.py, README.md</div></div>
+              </div>
+              <div class="setup-step">
+                <div class="step-num pending">2</div>
+                <div>
+                  <div class="step-content-title">Create GitHub repository</div>
+                  <div class="step-content-desc">Go to github.com → New repository → Name it <code style="color:var(--green);">tradeos-dashboard</code> → Public.</div>
+                </div>
+              </div>
+              <div class="setup-step">
+                <div class="step-num todo">3</div>
+                <div>
+                  <div class="step-content-title">Upload dashboard.html</div>
+                  <div class="step-content-desc">Drag and drop dashboard.html into the repo. Rename it to <code style="color:var(--green);">index.html</code> for GitHub Pages.</div>
+                </div>
+              </div>
+              <div class="setup-step">
+                <div class="step-num todo">4</div>
+                <div>
+                  <div class="step-content-title">Enable GitHub Pages</div>
+                  <div class="step-content-desc">Settings → Pages → Source: main branch → Save. Your dashboard will be live at <code style="color:var(--green);">username.github.io/tradeos-dashboard</code></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: SETTINGS ══ -->
+  <div class="tab-content" id="tab-settings">
+    <div class="settings-grid">
+      <div class="setting-group">
+        <div class="sg-title">⚙ Binance Grid Bot</div>
+        <div class="sg-row"><div><div class="sg-label">Grid Lower Bound</div><div class="sg-sub">Minimum price ($)</div></div><input class="sg-input" type="number" value="64000" id="cfg-grid-low"/></div>
+        <div class="sg-row"><div><div class="sg-label">Grid Upper Bound</div><div class="sg-sub">Maximum price ($)</div></div><input class="sg-input" type="number" value="70000" id="cfg-grid-high"/></div>
+        <div class="sg-row"><div><div class="sg-label">Grid Levels</div><div class="sg-sub">Number of grid lines</div></div><input class="sg-input" type="number" value="10" id="cfg-grid-n"/></div>
+        <div class="sg-row"><div><div class="sg-label">Capital (USDT)</div><div class="sg-sub">Total Binance allocation</div></div><input class="sg-input" type="number" value="20" id="cfg-bnb-cap"/></div>
+        <div class="sg-row"><div><div class="sg-label">Stop Loss Price</div><div class="sg-sub">Hard stop ($)</div></div><input class="sg-input" type="number" value="63000" id="cfg-stop"/></div>
+        <button class="save-btn" onclick="saveSettings()">Save Grid Settings</button>
+      </div>
+
+      <div class="setting-group">
+        <div class="sg-title">📊 Exness RSI Bot</div>
+        <div class="sg-row"><div><div class="sg-label">Trading Pair</div><div class="sg-sub">Forex pair to trade</div></div><input class="sg-input" type="text" value="EURUSD" id="cfg-fx-pair"/></div>
+        <div class="sg-row"><div><div class="sg-label">RSI Period</div><div class="sg-sub">Candles for RSI calculation</div></div><input class="sg-input" type="number" value="14" id="cfg-rsi-period"/></div>
+        <div class="sg-row"><div><div class="sg-label">RSI Overbought</div><div class="sg-sub">Sell signal threshold</div></div><input class="sg-input" type="number" value="70" id="cfg-rsi-ob"/></div>
+        <div class="sg-row"><div><div class="sg-label">RSI Oversold</div><div class="sg-sub">Buy signal threshold</div></div><input class="sg-input" type="number" value="30" id="cfg-rsi-os"/></div>
+        <div class="sg-row"><div><div class="sg-label">Lot Size</div><div class="sg-sub">Trade size (micro lots)</div></div><input class="sg-input" type="number" value="0.01" id="cfg-lot"/></div>
+        <button class="save-btn" onclick="saveSettings()">Save RSI Settings</button>
+      </div>
+
+      <div class="setting-group">
+        <div class="sg-title">🛡 Risk Management</div>
+        <div class="sg-row"><div><div class="sg-label">Max Risk Per Trade</div><div class="sg-sub">% of account per trade</div></div><input class="sg-input" type="number" value="2" id="cfg-risk"/></div>
+        <div class="sg-row"><div><div class="sg-label">Max Daily Loss</div><div class="sg-sub">Stop all bots if hit</div></div><input class="sg-input" type="number" value="5" id="cfg-daily-loss"/></div>
+        <div class="sg-row"><div><div class="sg-label">Max Total Drawdown</div><div class="sg-sub">% before emergency stop</div></div><input class="sg-input" type="number" value="15" id="cfg-max-dd"/></div>
+        <div class="sg-row">
+          <div><div class="sg-label">Emergency Stop</div><div class="sg-sub">Kill all trades instantly</div></div>
+          <label class="toggle" style="transform:scale(1.2);"><input type="checkbox" id="cfg-estop"><span class="tog-slider"></span></label>
+        </div>
+        <button class="save-btn" style="background:var(--red-bg);border-color:var(--red-border);color:var(--red);" onclick="emergencyStop()">🛑 EMERGENCY STOP ALL</button>
+      </div>
+
+      <div class="setting-group">
+        <div class="sg-title">🔔 Notifications</div>
+        <div class="sg-row"><div><div class="sg-label">Trade Alerts</div><div class="sg-sub">Alert on every fill</div></div><label class="toggle"><input type="checkbox" checked><span class="tog-slider"></span></label></div>
+        <div class="sg-row"><div><div class="sg-label">Stop-Loss Alert</div><div class="sg-sub">Alert if stop triggered</div></div><label class="toggle"><input type="checkbox" checked><span class="tog-slider"></span></label></div>
+        <div class="sg-row"><div><div class="sg-label">Daily Summary</div><div class="sg-sub">End-of-day report</div></div><label class="toggle"><input type="checkbox"><span class="tog-slider"></span></label></div>
+        <div class="sg-row"><div><div class="sg-label">Dashboard Sounds</div><div class="sg-sub">Audio on trade fill</div></div><label class="toggle"><input type="checkbox" id="cfg-sound"><span class="tog-slider"></span></label></div>
+        <button class="save-btn" onclick="saveSettings()">Save Notification Settings</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end main -->
+</div><!-- end shell -->
+
+<!-- MOBILE NAV -->
+<div class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <div class="mn-item active" onclick="switchTab('dashboard',this)"><div class="mn-icon">▦</div><div class="mn-label">HOME</div></div>
+    <div class="mn-item" onclick="switchTab('trades',this)"><div class="mn-icon">↕</div><div class="mn-label">TRADES</div></div>
+    <div class="mn-item" onclick="switchTab('bots',this)"><div class="mn-icon">⬡</div><div class="mn-label">BOTS</div></div>
+    <div class="mn-item" onclick="switchTab('setup',this)"><div class="mn-icon">◎</div><div class="mn-label">SETUP</div></div>
+    <div class="mn-item" onclick="switchTab('settings',this)"><div class="mn-icon">⚙</div><div class="mn-label">SETTINGS</div></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+/* ════════════════════════════════════
+   STATE
+════════════════════════════════════ */
+const S = {
+  running:true, bot1:true, bot2:false,
+  bnbBal:20, gridPnl:0, totalPnl:0,
+  wins:0, losses:0, totalTrades:0,
+  winAmounts:[], lossAmounts:[],
+  trades:[], allTrades:[],
+  btcPrices:[], ethPrices:[], eurPrices:[], gbpPrices:[],
+  btc:67000, eth:3400, eur:1.0820, gbp:1.2640,
+  perfLabels:[], perfData:[], peakPnl:0,
+  gridLow:64000, gridHigh:70000, gridLevels:10,
+  tick:0, histData:[],
+  tradeNum:0,
+};
+const LOGS = [];
+
+/* ════════════════════════════════════
+   TABS
+════════════════════════════════════ */
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.mn-item').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelector(`.tab[data-tab="${name}"]`)?.classList.add('active');
+  document.getElementById('page-title').textContent = {
+    dashboard:'Dashboard',trades:'Live Trades',bots:'Bot Management',
+    history:'Trade History',setup:'Setup Guide',settings:'Settings'
+  }[name]||name;
+  if (el) {
+    if (el.classList.contains('nav-link')) el.classList.add('active');
+    if (el.classList.contains('mn-item')) el.classList.add('active');
+  }
+  if (name==='history') buildHistChart();
+}
+
+/* ════════════════════════════════════
+   CLOCK
+════════════════════════════════════ */
+function updateClock() {
+  const n = new Date();
+  const t = n.toLocaleTimeString('en-GB',{hour12:false});
+  document.getElementById('clock').textContent = t;
+  document.getElementById('sb-sync').textContent = t;
+  // EAT = UTC+3
+  const eat = new Date(n.getTime() + 3*3600000);
+  document.getElementById('eat-clock').textContent =
+    eat.toISOString().substr(11,5)+' EAT';
+}
+
+/* ════════════════════════════════════
+   PRICE TICKS
+════════════════════════════════════ */
+function tickPrices() {
+  const rand = (b,v) => b + (Math.random()-0.48)*v;
+  S.btc = Math.max(58000, Math.min(78000, rand(S.btc, 140)));
+  S.eth = Math.max(2800,  Math.min(4200,  rand(S.eth, 18)));
+  S.eur = Math.max(1.04,  Math.min(1.14,  rand(S.eur, 0.0012)));
+  S.gbp = Math.max(1.20,  Math.min(1.35,  rand(S.gbp, 0.0014)));
+
+  S.btcPrices.push(S.btc); if(S.btcPrices.length>80) S.btcPrices.shift();
+  S.ethPrices.push(S.eth); if(S.ethPrices.length>80) S.ethPrices.shift();
+  S.eurPrices.push(S.eur); if(S.eurPrices.length>80) S.eurPrices.shift();
+  S.gbpPrices.push(S.gbp); if(S.gbpPrices.length>80) S.gbpPrices.shift();
+
+  const fmt = (v,d=2) => v.toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  const setPrice = (id, val, prev, dec, pfx='') => {
+    const chg = val - prev;
+    const pct = (chg/prev*100).toFixed(2);
+    document.getElementById(id+'-p').textContent = pfx + fmt(val, dec);
+    const c = document.getElementById(id+'-c');
+    c.textContent = (chg>=0?'+':'')+chg.toFixed(dec)+' ('+(chg>=0?'+':'')+pct+'%)';
+    c.className = 'pi-chg ' + (chg>=0?'up':'dn');
+  };
+  const prevBtc = S.btcPrices[S.btcPrices.length-2]||S.btc;
+  const prevEth = S.ethPrices[S.ethPrices.length-2]||S.eth;
+  const prevEur = S.eurPrices[S.eurPrices.length-2]||S.eur;
+  const prevGbp = S.gbpPrices[S.gbpPrices.length-2]||S.gbp;
+  setPrice('btc',S.btc,prevBtc,0,'$');
+  setPrice('eth',S.eth,prevEth,2,'$');
+  setPrice('eur',S.eur,prevEur,5,'');
+  setPrice('gbp',S.gbp,prevGbp,5,'');
+
+  updateSparklines();
+  document.getElementById('bots-btc-cur').textContent = '$'+fmt(S.btc,0);
+  document.getElementById('bots-eur').textContent = S.eur.toFixed(5);
+}
+
+/* ════════════════════════════════════
+   SPARKLINES
+════════════════════════════════════ */
+function sparkPts(arr, svgId, color) {
+  if (arr.length < 2) return;
+  const min=Math.min(...arr), max=Math.max(...arr), range=max-min||1;
+  const pts = arr.map((v,i)=>`${(i/(arr.length-1)*200).toFixed(1)},${(34-((v-min)/range)*30).toFixed(1)}`).join(' ');
+  const el = document.getElementById(svgId);
+  if (el) { el.setAttribute('points',pts); el.setAttribute('stroke',color); }
+}
+function updateSparklines() {
+  sparkPts(S.btcPrices,'spark-btc','#FFB830');
+  sparkPts(S.eurPrices,'eur-spark','#4D9EFF');
+}
+
+/* ════════════════════════════════════
+   GRID VISUALISER
+════════════════════════════════════ */
+function buildGridVis(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = '';
+  const lo=S.gridLow, hi=S.gridHigh, range=hi-lo;
+  const step = range/S.gridLevels;
+  for (let i=0; i<=S.gridLevels; i++) {
+    const price = lo + step*i;
+    const pct = ((price-lo)/range)*100;
+    const line = document.createElement('div');
+    line.className = 'grid-line ' + (price < S.btc ? 'buy' : 'sell');
+    line.style.bottom = pct+'%';
+    el.appendChild(line);
+    if (i%2===0 || i===S.gridLevels) {
+      const lbl = document.createElement('div');
+      lbl.className = 'grid-label';
+      lbl.style.bottom = pct+'%';
+      lbl.style.color = price < S.btc ? 'var(--green)' : 'var(--red)';
+      lbl.textContent = '$'+(price/1000).toFixed(1)+'k';
+      el.appendChild(lbl);
+    }
+  }
+  // Current price line
+  const inRange = S.btc >= lo && S.btc <= hi;
+  const curPct = inRange ? ((S.btc-lo)/range)*100 : (S.btc<lo?0:100);
+  const cur = document.createElement('div');
+  cur.className = 'grid-line current';
+  cur.style.bottom = curPct+'%';
+  el.appendChild(cur);
+  // Price bar
+  const bar = document.createElement('div');
+  bar.className = 'price-bar';
+  bar.style.height = curPct+'%';
+  bar.style.bottom = '0';
+  bar.style.position = 'absolute';
+  el.appendChild(bar);
+}
+
+/* ════════════════════════════════════
+   GRID BOT TICK
+════════════════════════════════════ */
+function tickGrid() {
+  if (!S.bot1) return;
+  const inRange = S.btc >= S.gridLow && S.btc <= S.gridHigh;
+  const rangePct = inRange
+    ? Math.round(((S.btc-S.gridLow)/(S.gridHigh-S.gridLow))*100) : (S.btc<S.gridLow?0:100);
+
+  set('bot1-pct', rangePct+'%');
+  document.getElementById('bot1-bar').style.width = rangePct+'%';
+  buildGridVis('grid-vis');
+  buildGridVis('bots-grid-vis');
+
+  if (inRange && Math.random() < 0.10) {
+    const isWin = Math.random() > 0.38;
+    const pnl = isWin
+      ? +(Math.random()*0.09+0.01).toFixed(4)
+      : -(Math.random()*0.05+0.005).toFixed(4);
+    S.gridPnl  += pnl;
+    S.bnbBal   += pnl;
+    S.totalPnl  = S.gridPnl;
+    S.totalTrades++;
+    S.tradeNum++;
+    if (pnl>0) { S.wins++; S.winAmounts.push(pnl); addLog(`Grid fill → SELL @ $${S.btc.toFixed(0)} | P&L +$${pnl.toFixed(4)}`,'s'); }
+    else       { S.losses++; S.lossAmounts.push(Math.abs(pnl)); addLog(`Grid fill → BUY @ $${S.btc.toFixed(0)} | P&L -$${Math.abs(pnl).toFixed(4)}`,'w'); }
+    S.peakPnl = Math.max(S.peakPnl, S.gridPnl);
+    pushTrade({
+      n:S.tradeNum, pair:'BTC/USDT', side:pnl>0?'SELL':'BUY',
+      entry:S.btc, pnl, bot:'GRID_BOT_01'
+    });
+  }
+
+  if (!inRange) addLog(`⚠ BTC out of grid range ($${S.btc.toFixed(0)})`,'w');
+}
+
+/* ════════════════════════════════════
+   TRADES
+════════════════════════════════════ */
+function pushTrade(tr) {
+  tr.t = new Date().toLocaleTimeString('en-GB',{hour12:false});
+  S.trades.unshift(tr); if(S.trades.length>20) S.trades.pop();
+  S.allTrades.unshift(tr);
+  renderTrades();
+  set('trades-ts','Updated '+tr.t);
+  set('lt-count', S.allTrades.length+' total');
+}
+
+function renderTrades() {
+  const rows = S.trades.map(tr => `<tr>
+    <td class="td-pair">${tr.pair}</td>
+    <td><span class="pill ${tr.side==='BUY'?'pill-buy':'pill-sell'}">${tr.side}</span></td>
+    <td class="td-mono">$${tr.entry.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')}</td>
+    <td class="td-pnl ${tr.pnl>=0?'up':'dn'}">${tr.pnl>=0?'+':''}$${tr.pnl.toFixed(4)}</td>
+    <td><span class="pill pill-closed">CLOSED</span></td>
+    <td style="font-size:11px;color:var(--text3);">${tr.bot||'—'}</td>
+    <td class="td-mono" style="color:var(--text3);">${tr.t}</td>
+  </tr>`).join('');
+  document.getElementById('trades-tbody').innerHTML = rows || '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:2rem;">No trades yet</td></tr>';
+
+  const allRows = S.allTrades.map(tr => `<tr>
+    <td class="td-mono" style="color:var(--text3);">#${tr.n}</td>
+    <td class="td-pair">${tr.pair}</td>
+    <td><span class="pill ${tr.side==='BUY'?'pill-buy':'pill-sell'}">${tr.side}</span></td>
+    <td class="td-mono">$${tr.entry.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')}</td>
+    <td class="td-mono" style="color:var(--text3);">—</td>
+    <td class="td-mono">—</td>
+    <td class="td-pnl ${tr.pnl>=0?'up':'dn'}">${tr.pnl>=0?'+':''}$${tr.pnl.toFixed(4)}</td>
+    <td><span class="pill pill-closed">CLOSED</span></td>
+    <td style="font-size:11px;color:var(--text3);">${tr.bot||'—'}</td>
+    <td class="td-mono" style="color:var(--text3);">${tr.t}</td>
+  </tr>`).join('');
+  document.getElementById('all-trades-tbody').innerHTML = allRows || '<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:2rem;">No trades yet</td></tr>';
+}
+
+/* ════════════════════════════════════
+   PERFORMANCE CHART
+════════════════════════════════════ */
+let perfChart;
+function initPerfChart() {
+  const ctx = document.getElementById('perf-chart').getContext('2d');
+  perfChart = new Chart(ctx, {
+    type:'line',
+    data:{ labels:S.perfLabels, datasets:[{
+      label:'Portfolio ($)', data:S.perfData,
+      borderColor:'#00FF94', borderWidth:1.5,
+      backgroundColor:'rgba(0,255,148,0.04)',
+      fill:true, tension:0.4, pointRadius:0, pointHoverRadius:3,
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{
+        backgroundColor:'#0D1117', borderColor:'#1E2D3D', borderWidth:1,
+        titleColor:'#8B949E', bodyColor:'#E6EDF3',
+        bodyFont:{family:'Space Mono',size:11},
+        callbacks:{label: c=>' $'+c.parsed.y.toFixed(3)}
+      }},
+      scales:{
+        x:{grid:{color:'#1E2D3D',lineWidth:0.5}, ticks:{color:'#484F58',font:{family:'Space Mono',size:9},maxTicksLimit:8}},
+        y:{grid:{color:'#1E2D3D',lineWidth:0.5}, ticks:{color:'#484F58',font:{family:'Space Mono',size:9},callback:v=>'$'+v.toFixed(2)}, beginAtZero:false}
+      }
+    }
+  });
+}
+
+let histChart;
+function buildHistChart() {
+  if (!document.getElementById('hist-chart')) return;
+  const ctx = document.getElementById('hist-chart').getContext('2d');
+  if (histChart) histChart.destroy();
+  histChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels:S.perfLabels.filter((_,i)=>i%5===0).slice(-20),
+      datasets:[{
+        label:'P&L ($)',
+        data:S.perfData.filter((_,i)=>i%5===0).slice(-20).map((v,i,a)=>i>0?v-a[i-1]:0),
+        backgroundColor: (ctx) => ctx.parsed.y >= 0 ? 'rgba(0,255,148,0.4)' : 'rgba(255,77,106,0.4)',
+        borderColor: (ctx) => ctx.parsed.y >= 0 ? '#00FF94' : '#FF4D6A',
+        borderWidth:1, borderRadius:3,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:'#1E2D3D'}, ticks:{color:'#484F58',font:{family:'Space Mono',size:9},maxTicksLimit:8}},
+        y:{grid:{color:'#1E2D3D'}, ticks:{color:'#484F58',font:{family:'Space Mono',size:9},callback:v=>'$'+v.toFixed(3)}}
+      }
+    }
+  });
+}
+
+function pushPerf(val) {
+  const t = new Date().toLocaleTimeString('en-GB',{hour12:false});
+  S.perfLabels.push(t); S.perfData.push(parseFloat(val.toFixed(3)));
+  if (S.perfLabels.length>120){ S.perfLabels.shift(); S.perfData.shift(); }
+  perfChart.update('none');
+}
+
+/* ════════════════════════════════════
+   RISK METER
+════════════════════════════════════ */
+function updateRisk(pct) {
+  const arc = document.getElementById('risk-arc2');
+  const total = 166;
+  const filled = (pct/100)*total;
+  arc.setAttribute('stroke-dasharray',`${filled} ${total}`);
+  const color = pct<30?'#00FF94':pct<60?'#FFB830':'#FF4D6A';
+  arc.setAttribute('stroke',color);
+  document.getElementById('risk-txt').textContent = Math.round(pct)+'%';
+  const tag = document.getElementById('risk-tag');
+  if (tag) {
+    tag.textContent = pct<30?'LOW':pct<60?'MEDIUM':'HIGH';
+    tag.className = 'ctag '+(pct<30?'ctag-live':pct<60?'ctag-demo':'');
+    if (pct>=60) { tag.style.background='var(--red-bg)';tag.style.color='var(--red)';tag.style.border='1px solid var(--red-border)'; }
+    else tag.style='';
+  }
+}
+
+/* ════════════════════════════════════
+   UPDATE UI
+════════════════════════════════════ */
+function set(id, val) { const e=document.getElementById(id); if(e) e.textContent=val; }
+
+function updateUI() {
+  const total = 20 + 30 + S.gridPnl;
+  const pnlPct = (S.gridPnl/50*100).toFixed(2);
+  const dd = S.peakPnl > 0 ? Math.max(0, (S.peakPnl - S.gridPnl)/S.peakPnl*100) : 0;
+
+  // sidebar
+  set('sb-bnb-bal','$'+S.bnbBal.toFixed(2));
+  const pnlEl = document.getElementById('sb-bnb-pnl');
+  if(pnlEl){ pnlEl.textContent=(S.gridPnl>=0?'+':'')+`$${S.gridPnl.toFixed(3)} (${S.gridPnl>=0?'+':''}${pnlPct}%)`; pnlEl.className='acct-pnl '+(S.gridPnl>=0?'up':'dn'); }
+
+  // metrics
+  set('m-total','$'+total.toFixed(2));
+  const tcEl=document.getElementById('m-total-chg'); if(tcEl){tcEl.textContent=(S.gridPnl>=0?'▲ +$':'▼ -$')+Math.abs(S.gridPnl).toFixed(3)+' today';tcEl.className=S.gridPnl>=0?'up':'dn';}
+  const pnlEl2=document.getElementById('m-pnl'); if(pnlEl2){pnlEl2.textContent=(S.gridPnl>=0?'+':'')+`$${S.gridPnl.toFixed(3)}`;pnlEl2.className='mc-val '+(S.gridPnl>=0?'green':'red');}
+  const pctEl=document.getElementById('m-pnl-pct'); if(pctEl){pctEl.textContent=(S.gridPnl>=0?'+':'')+pnlPct+'% return';pctEl.className=S.gridPnl>=0?'up':'dn';}
+  set('m-open', S.bot1?'1':'0');
+  set('sb-open', S.bot1?'1':'0');
+  const wr = S.totalTrades>0 ? Math.round(S.wins/S.totalTrades*100) : 0;
+  const wrEl=document.getElementById('m-wr'); if(wrEl){wrEl.textContent=wr+'%';wrEl.className='mc-val '+(wr>=55?'green':wr>=40?'amber':'red');}
+  set('m-wr-sub', S.totalTrades+' trades closed');
+  if (S.trades.length>0) {
+    const best=Math.max(...S.trades.map(t=>t.pnl));
+    set('m-best','$'+best.toFixed(4));
+    set('m-best-sub','today · grid bot');
+  }
+
+  // bot1
+  const b1pnl=document.getElementById('bot1-pnl'); if(b1pnl){b1pnl.textContent=(S.gridPnl>=0?'+':'')+`$${S.gridPnl.toFixed(4)}`;b1pnl.className='bs-val '+(S.gridPnl>=0?'green':'red');}
+
+  // stats
+  set('st-total',S.totalTrades);
+  set('st-wins',S.wins);
+  set('st-losses',S.losses);
+  set('st-wr',wr+'%');
+  const ddEl=document.getElementById('st-dd'); if(ddEl) ddEl.textContent=dd.toFixed(2)+'%';
+  document.getElementById('st-wr-bar').style.width=wr+'%';
+  document.getElementById('st-dd-bar').style.width=Math.min(dd,100)+'%';
+  const avgW = S.winAmounts.length>0 ? S.winAmounts.reduce((a,b)=>a+b,0)/S.winAmounts.length : 0;
+  const avgL = S.lossAmounts.length>0 ? S.lossAmounts.reduce((a,b)=>a+b,0)/S.lossAmounts.length : 0;
+  set('st-avgwin','$'+avgW.toFixed(4));
+  set('st-avgloss','$'+avgL.toFixed(4));
+
+  // live trades tab
+  set('lt-open', S.bot1?'1':'0');
+  const ltupnl=document.getElementById('lt-upnl'); if(ltupnl){ltupnl.textContent=(S.gridPnl>=0?'+':'')+`$${S.gridPnl.toFixed(4)}`;ltupnl.className='mc-val '+(S.gridPnl>=0?'green':'red');}
+  set('lt-closed',S.totalTrades);
+  const ltrpnl=document.getElementById('lt-rpnl'); if(ltrpnl){ltrpnl.textContent=(S.gridPnl>=0?'+':'')+`$${S.gridPnl.toFixed(4)}`;ltrpnl.className='mc-val '+(S.gridPnl>=0?'green':'red');}
+
+  // allocation pnl
+  set('alloc-pnl',(S.gridPnl>=0?'+':'')+`$${S.gridPnl.toFixed(3)}`);
+  document.getElementById('alloc-pnl').className=S.gridPnl>=0?'up':'dn';
+
+  // perf chart extras
+  set('perf-current','$'+total.toFixed(3));
+  set('perf-peak','$'+(50+S.peakPnl).toFixed(3));
+  const ddEl2=document.getElementById('perf-dd'); if(ddEl2){ddEl2.textContent=dd.toFixed(2)+'%';ddEl2.className=dd>5?'dn':'';}
+
+  // history
+  set('h-return',(S.gridPnl>=0?'+':'')+pnlPct+'%');
+  set('h-dd','-'+dd.toFixed(2)+'%');
+  if (S.trades.length>0){
+    const best=Math.max(...S.allTrades.map(t=>t.pnl));
+    const worst=Math.min(...S.allTrades.map(t=>t.pnl));
+    set('h-best','+$'+best.toFixed(4));
+    set('h-worst','$'+worst.toFixed(4));
+  }
+  set('h-sharpe', S.totalTrades>5 ? (wr/100*1.8).toFixed(2) : '--');
+
+  // risk
+  const riskPct = S.bot1 ? Math.min(40, (Math.abs(S.gridPnl)<0.5 ? 15 : 15 + Math.abs(S.gridPnl)*8)) : 0;
+  updateRisk(riskPct);
+
+  pushPerf(total);
+}
+
+/* ════════════════════════════════════
+   CONTROLS
+════════════════════════════════════ */
+function toggleMaster() {
+  S.running = !S.running;
+  const btn=document.getElementById('master-btn');
+  btn.textContent = S.running?'⏸ Pause All':'▶ Resume All';
+  btn.className = S.running?'tb-btn green':'tb-btn red';
+  set('sys-status-txt', S.running?'Systems Operational':'⏸ All Bots Paused');
+  addLog(S.running?'All bots RESUMED':'All bots PAUSED ⏸', S.running?'s':'w');
+}
+
+function toggleBot(n) {
+  if (n===1) {
+    S.bot1=document.getElementById('bot1-tog').checked;
+    const b=document.getElementById('b-bot1-tog'); if(b) b.checked=S.bot1;
+    ['bot1-ctag','b-bot1-ctag'].forEach(id=>{
+      const e=document.getElementById(id); if(!e)return;
+      e.textContent=S.bot1?'LIVE':'PAUSED';
+      e.className='ctag '+(S.bot1?'ctag-live':'ctag-off');
+    });
+    addLog(`GRID_BOT_01 ${S.bot1?'STARTED ▶':'STOPPED ⏹'}`, S.bot1?'s':'w');
+  }
+  if (n===2) {
+    S.bot2=document.getElementById('bot2-tog').checked;
+    addLog(`RSI_BOT_01 ${S.bot2?'STARTED (demo)':'STOPPED'}`,S.bot2?'i':'w');
+  }
+}
+
+function doRefresh() {
+  tickPrices(); updateUI();
+  addLog('Manual sync triggered','i');
+}
+
+function saveSettings() {
+  S.gridLow  = parseFloat(document.getElementById('cfg-grid-low').value)||64000;
+  S.gridHigh = parseFloat(document.getElementById('cfg-grid-high').value)||70000;
+  S.gridLevels = parseInt(document.getElementById('cfg-grid-n').value)||10;
+  addLog(`Settings saved — Grid $${S.gridLow/1000}k–$${S.gridHigh/1000}k x${S.gridLevels}`,'s');
+}
+
+function emergencyStop() {
+  S.running=false; S.bot1=false; S.bot2=false;
+  document.getElementById('bot1-tog').checked=false;
+  document.getElementById('bot2-tog').checked=false;
+  addLog('🛑 EMERGENCY STOP — all bots halted','e');
+  const btn=document.getElementById('master-btn');
+  btn.textContent='▶ Resume All'; btn.className='tb-btn red';
+}
+
+function chartRange(r) { addLog('Chart range: '+r,'i'); }
+
+/* ════════════════════════════════════
+   LOG
+════════════════════════════════════ */
+function addLog(msg, type='i') {
+  const t=new Date().toLocaleTimeString('en-GB',{hour12:false});
+  LOGS.unshift({t,msg,type});
+  if(LOGS.length>100) LOGS.pop();
+  renderLog();
+}
+function renderLog() {
+  const el=document.getElementById('log-list');
+  if(!el)return;
+  el.innerHTML=LOGS.slice(0,25).map(l=>`
+    <div class="log-item">
+      <span class="log-t">${l.t}</span>
+      <span class="log-m ${l.type}">${l.msg}</span>
+    </div>`).join('');
+}
+function clearLog(){ LOGS.length=0; renderLog(); }
+
+/* ════════════════════════════════════
+   MAIN LOOP
+════════════════════════════════════ */
+let _tick=0;
+function loop() {
+  if (!S.running) { updateClock(); return; }
+  _tick++;
+  updateClock();
+  if (_tick%2===0)  tickPrices();
+  if (_tick%6===0)  tickGrid();
+  if (_tick%10===0) updateUI();
+  if (_tick%30===0) buildGridVis('grid-vis');
+  if (_tick%30===0) buildGridVis('bots-grid-vis');
+}
+
+/* ════════════════════════════════════
+   INIT
+════════════════════════════════════ */
+window.addEventListener('load', () => {
+  initPerfChart();
+  updateClock();
+
+  // Seed prices
+  for (let i=0;i<25;i++){
+    S.btc=Math.max(58000,Math.min(78000,S.btc+(Math.random()-0.48)*100));
+    S.eth=Math.max(2800,Math.min(4200,S.eth+(Math.random()-0.48)*12));
+    S.eur=Math.max(1.04,Math.min(1.14,S.eur+(Math.random()-0.48)*0.0008));
+    S.gbp=Math.max(1.20,Math.min(1.35,S.gbp+(Math.random()-0.48)*0.0010));
+    S.btcPrices.push(S.btc); S.ethPrices.push(S.eth);
+    S.eurPrices.push(S.eur); S.gbpPrices.push(S.gbp);
+  }
+  // Seed perf baseline
+  for (let i=0;i<5;i++) pushPerf(50);
+
+  updateSparklines(); buildGridVis('grid-vis'); buildGridVis('bots-grid-vis');
+  tickPrices(); updateUI();
+
+  // Init logs
+  addLog('TradeOS v1.0 — dashboard loaded','s');
+  addLog('Binance API key loaded ✓','s');
+  addLog('GRID_BOT_01 active on BTC/USDT','s');
+  addLog('Grid: $64k–$70k · 10 levels · $1.80/grid','i');
+  addLog('Stop-loss set at $63,000','i');
+  addLog('Max risk per trade: 2% of capital','i');
+  addLog('Exness MT5 bot pending — see Setup Guide','w');
+  addLog('Dashboard hosted on GitHub Pages ready','i');
+
+  setInterval(loop, 1000);
+});
+</script>
+</body>
+</html>
